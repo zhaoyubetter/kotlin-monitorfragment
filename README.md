@@ -26,6 +26,11 @@
 	    }
 	}
 	```
+2. 引入库
+
+    ```
+    implementation 'com.github.zhaoyubetter:kotlin-monitorfragment:v1.0.0'
+    ```
 
 ## 具体使用
 
