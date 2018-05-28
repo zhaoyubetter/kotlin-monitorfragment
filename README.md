@@ -10,6 +10,9 @@
 
 采用kotlin编写，代码比较少，大佬勿喷！
 
+## Java 版本
+[https://github.com/liyuzero/maeMonitorFragment](https://github.com/liyuzero/maeMonitorFragment)
+
 ## 原理 
 `monitorfragment`为一个透明的fragment，通过将`monitorfragment`添加到activity or fragment，充当监听器，并监听对应的方法，如上实现；
 
