@@ -16,20 +16,21 @@ import android.text.TextUtils
 /**
  * 该Fragment提供生命周期监听和权限申请方法，因为二者实现原理一致，因此实现方法统一到该Fragment内
  */
-class MAEMonitorFragment : Fragment(), MAEPermissionRequest {
+internal class MAEMonitorFragment : Fragment(), MAEPermissionRequest {
 
     /**
-     * 生命周期回调
+     * 生命周期回调，改成高阶函数
      */
-    private var lifecycleListener: MAELifecycleListener? = null
-    /**
-     * 权限回调
-     */
-    private var maePermissionCallback: MAEPermissionCallback? = null
+    private var lifecycleListener: ((MAELifeCycleState, Bundle?) -> Unit)? = null
     /**
      * startActivityForResult回调
      */
     private var resultListener: ((Int, Int, Intent?) -> Unit)? = null
+
+    /**
+     * 权限回调
+     */
+    private var maePermissionCallback: MAEPermissionCallback? = null
     private var request_code = 20
 
     companion object {
@@ -61,9 +62,8 @@ class MAEMonitorFragment : Fragment(), MAEPermissionRequest {
         }
     }
 
-
-    override fun setLifecycleListener(lifecycleListener: MAELifecycleListener) {
-        this.lifecycleListener = lifecycleListener
+    override fun setLifecycleListener(listener: (state: MAELifeCycleState, saveInstance: Bundle?) -> Unit) {
+        this.lifecycleListener = listener
     }
 
     override fun maeStartActivityForResult(intent: Intent, requestCode: Int, bundle: Bundle?, resultListener: ((Int, Int, Intent?) -> Unit)) {
@@ -176,51 +176,42 @@ class MAEMonitorFragment : Fragment(), MAEPermissionRequest {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        lifecycleListener?.onCreate(savedInstanceState)
+        lifecycleListener?.invoke(MAELifeCycleState.ON_CREATE, savedInstanceState)
     }
 
     override fun onStart() {
         super.onStart()
-        lifecycleListener?.onStart()
+        lifecycleListener?.invoke(MAELifeCycleState.ON_START, null)
     }
 
     override fun onResume() {
         super.onResume()
-        lifecycleListener?.onResume()
+        lifecycleListener?.invoke(MAELifeCycleState.ON_RESUME, null)
     }
 
     override fun onPause() {
         super.onPause()
-        lifecycleListener?.onPause()
+        lifecycleListener?.invoke(MAELifeCycleState.ON_PAUSE, null)
     }
 
     override fun onStop() {
         super.onStop()
-        lifecycleListener?.onStop()
+        lifecycleListener?.invoke(MAELifeCycleState.ON_STOP, null)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        lifecycleListener?.onSaveInstanceState(outState)
+        lifecycleListener?.invoke(MAELifeCycleState.ON_SAVE_STATE, outState)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        lifecycleListener?.onDestroy()
+        lifecycleListener?.invoke(MAELifeCycleState.ON_DESTROY, null)
     }
 }
 
-/**
- * 生命周期钩子方法
- */
-interface MAELifecycleListener {
-    fun onCreate(savedInstanceState: Bundle?) {}
-    fun onStart() {}
-    fun onResume() {}
-    fun onPause() {}
-    fun onStop() {}
-    fun onDestroy() {}
-    fun onSaveInstanceState(outState: Bundle) {}
+enum class MAELifeCycleState {
+    ON_CREATE, ON_START, ON_RESUME, ON_PAUSE, ON_STOP, ON_DESTROY, ON_SAVE_STATE
 }
 
 /**
@@ -242,9 +233,9 @@ interface MAEPermissionCallback {
 interface MAEPermissionRequest {
 
     /**
-     * 监听生命周期
+     * 监听生命周期，高阶函数
      */
-    fun setLifecycleListener(lifecycleListener: MAELifecycleListener)
+    fun setLifecycleListener(listener: (MAELifeCycleState, Bundle?) -> Unit)
 
     /**
      * activityForResult

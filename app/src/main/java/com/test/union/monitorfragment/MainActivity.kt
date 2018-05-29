@@ -37,19 +37,14 @@ class MainActivity : AppCompatActivity() {
 
         // lifecycle
         btn_lifeCycle.setOnClickListener {
-            MAEMonitorFragment.getInstance(this)?.setLifecycleListener(object : MAELifecycleListener {
-                override fun onSaveInstanceState(outState: Bundle) {
-                    Toast.makeText(applicationContext, "onSaveInstance()", Toast.LENGTH_SHORT).show()
+            maeLifeCycleListener { state, _ ->
+                when (state) {
+                    MAELifeCycleState.ON_STOP ->
+                        Toast.makeText(applicationContext, "onStop", Toast.LENGTH_SHORT).show()
+                    MAELifeCycleState.ON_DESTROY ->
+                        Toast.makeText(applicationContext, "onDestroy", Toast.LENGTH_SHORT).show()
                 }
-
-                override fun onCreate(savedInstanceState: Bundle?) {
-                    Toast.makeText(applicationContext, "onCreate()", Toast.LENGTH_SHORT).show()
-                }
-
-                override fun onStop() {
-                    Toast.makeText(applicationContext, "onStop()", Toast.LENGTH_SHORT).show()
-                }
-            })
+            }
         }
 
         // fragment

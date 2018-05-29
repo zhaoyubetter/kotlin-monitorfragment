@@ -10,6 +10,30 @@
 
 采用kotlin编写，代码比较少，大佬勿喷！
 
+## 修改历史
+### 1. 哥们建议
+你这代码太不kotlin了，完全就是翻译的Java，缺乏创新，要培养函数式思维；可以尝试改一下；  
+
+* 回调方法采用高阶函数，避免实现多个方法；
+* 采用DSL（始终有点晕）；
+
+**1. 将生命周期接口改成高阶函数，更加简洁：**
+
+```kotlin
+btn_lifeCycle.setOnClickListener {
+        maeLifeCycleListener { state, _ ->
+            when (state) {
+                MAELifeCycleState.ON_STOP ->
+                    Toast.makeText(applicationContext, "onStop", Toast.LENGTH_SHORT).show()
+                MAELifeCycleState.ON_DESTROY ->
+                    Toast.makeText(applicationContext, "onDestroy", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+```
+
+
+
 ## Java 版本
 [https://github.com/liyuzero/maeMonitorFragment](https://github.com/liyuzero/maeMonitorFragment)
 

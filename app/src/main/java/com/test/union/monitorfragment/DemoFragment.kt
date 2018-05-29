@@ -41,18 +41,18 @@ class DemoFragment : Fragment() {
         }
 
         // lifecycle
-        btn_lifeCycle.setOnClickListener {
-            MAEMonitorFragment.getInstance(this)?.setLifecycleListener(object: MAELifecycleListener {
-                override fun onSaveInstanceState(outState: Bundle) {
-                    Toast.makeText(activity, "fragment ===> onSaveInstance()", Toast.LENGTH_SHORT).show()
-                }
-                override fun onCreate(savedInstanceState: Bundle?) {
-                    Toast.makeText(activity, "fragment ===> onCreate()", Toast.LENGTH_SHORT).show()
-                }
-                override fun onStop() {
-                    Toast.makeText(activity, "fragment ===> onStop()", Toast.LENGTH_SHORT).show()
-                }
-            })
-        }
+//        btn_lifeCycle.setOnClickListener {
+//            MAEMonitorFragment.getInstance(this)?.setLifecycleListener(object: MAELifecycleListener {
+//                override fun onSaveInstanceState(outState: Bundle) {
+//                    Toast.makeText(activity, "fragment ===> onSaveInstance()", Toast.LENGTH_SHORT).show()
+//                }
+//                override fun onCreate(savedInstanceState: Bundle?) {
+//                    Toast.makeText(activity, "fragment ===> onCreate()", Toast.LENGTH_SHORT).show()
+//                }
+//                override fun onStop() {
+//                    Toast.makeText(activity, "fragment ===> onStop()", Toast.LENGTH_SHORT).show()
+//                }
+//            })
+//        }
     }
 }

@@ -49,3 +49,21 @@ fun android.support.v4.app.Fragment.maeStartActivityForResult(intent: Intent, re
 }
 
 
+/**
+ * lifeCycle
+ */
+fun Activity.maeLifeCycleListener(lifecycleListener: (MAELifeCycleState, Bundle?) -> Unit) {
+    MAEMonitorFragment.getInstance(this)?.setLifecycleListener(lifecycleListener)
+}
+
+fun Fragment.maeLifeCycleListener(lifecycleListener: (MAELifeCycleState, Bundle?) -> Unit) {
+    MAEMonitorFragment.getInstance(this)?.setLifecycleListener(lifecycleListener)
+}
+
+fun android.support.v4.app.Fragment.maeLifeCycleListener(lifecycleListener: (MAELifeCycleState, Bundle?) -> Unit) {
+    MAEMonitorFragment.getInstance(this)?.setLifecycleListener(lifecycleListener)
+}
+
+
+
+
