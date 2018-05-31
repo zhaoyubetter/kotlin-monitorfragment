@@ -21,38 +21,33 @@ class DemoFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         // 权限
         btn_sd.setOnClickListener { view ->
-            maeRequestPermission(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.CAMERA), object : MAEPermissionCallback {
-                override fun onPermissionApplySuccess() {
-                    Toast.makeText(activity, "fragment ===> 获取成功", Toast.LENGTH_SHORT).show()
+            maeReqPermission(Manifest.permission.CAMERA, Manifest.permission.ACCESS_FINE_LOCATION) {
+                success {
+                    Toast.makeText(context, "获取成功", Toast.LENGTH_SHORT).show()
                 }
-
-                override fun onPermissionApplyFailure(notGrantedPermissions: List<String>, shouldShowRequestPermissions: List<Boolean>) {
-                    Toast.makeText(activity, "fragment ===> 获取失败！！", Toast.LENGTH_SHORT).show()
+                failed {
+                    Toast.makeText(context, "获取失败！！", Toast.LENGTH_SHORT).show()
                 }
-            })
+            }
         }
 
         // activityResult
         btn_result.setOnClickListener {
-            maeStartActivityForResult(Intent(activity, DemoActivity::class.java), 20) { _, _, data ->
+            maeStartForResult(Intent(activity, DemoActivity::class.java), 20) { _, _, data ->
                 Toast.makeText(activity, "fragment ====> " + data?.getStringExtra("name"), Toast.LENGTH_SHORT).show()
             }
         }
 
-        // lifecycle
-//        btn_lifeCycle.setOnClickListener {
-//            MAEMonitorFragment.getInstance(this)?.setLifecycleListener(object: MAELifecycleListener {
-//                override fun onSaveInstanceState(outState: Bundle) {
-//                    Toast.makeText(activity, "fragment ===> onSaveInstance()", Toast.LENGTH_SHORT).show()
-//                }
-//                override fun onCreate(savedInstanceState: Bundle?) {
-//                    Toast.makeText(activity, "fragment ===> onCreate()", Toast.LENGTH_SHORT).show()
-//                }
-//                override fun onStop() {
-//                    Toast.makeText(activity, "fragment ===> onStop()", Toast.LENGTH_SHORT).show()
-//                }
-//            })
-//        }
+        // 生命周期
+        btn_lifeCycle.setOnClickListener {
+            maeLifeCycle { state, _ ->
+                when (state) {
+                    MAELifeCycleState.ON_STOP ->
+                        Toast.makeText(context, "onStop", Toast.LENGTH_SHORT).show()
+                    MAELifeCycleState.ON_DESTROY ->
+                        Toast.makeText(context, "onDestroy", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 }

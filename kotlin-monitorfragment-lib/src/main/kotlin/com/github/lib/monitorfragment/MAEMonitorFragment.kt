@@ -16,7 +16,7 @@ import android.text.TextUtils
 /**
  * 该Fragment提供生命周期监听和权限申请方法，因为二者实现原理一致，因此实现方法统一到该Fragment内
  */
-internal class MAEMonitorFragment : Fragment(), MAEPermissionRequest {
+internal class MAEMonitorFragment : Fragment() {
 
     /**
      * 生命周期回调，改成高阶函数
@@ -26,29 +26,25 @@ internal class MAEMonitorFragment : Fragment(), MAEPermissionRequest {
      * startActivityForResult回调
      */
     private var resultListener: ((Int, Int, Intent?) -> Unit)? = null
-
-    /**
-     * 权限回调
-     */
-    private var maePermissionCallback: MAEPermissionCallback? = null
-    private var request_code = 20
+    private val request_code = 20
+    private var reqPermissionBuilder: MAEReqPermissionBuilder? = null
 
     companion object {
         private const val MONITOR_FRAGMENT_TAG = "MAE_MONITOR_FRAGMENT_TAG"
 
-        fun getInstance(fragment: android.support.v4.app.Fragment): MAEPermissionRequest? {
+        fun getInstance(fragment: android.support.v4.app.Fragment): MAEMonitorFragment? {
             return if (fragment?.isAdded) fragment?.activity?.let {
                 getInstance(it)
             } else null
         }
 
-        fun getInstance(fragment: Fragment): MAEPermissionRequest? {
+        fun getInstance(fragment: Fragment): MAEMonitorFragment? {
             return if (fragment?.isAdded) fragment?.activity?.let {
                 getInstance(it)
             } else null
         }
 
-        fun <T : Activity> getInstance(activity: T): MAEPermissionRequest? {
+        fun <T : Activity> getInstance(activity: T): MAEMonitorFragment? {
             return if (!activity.isFinishing)
                 (activity.fragmentManager.findFragmentByTag(MONITOR_FRAGMENT_TAG) as? MAEMonitorFragment)
                         ?: with(MAEMonitorFragment()) {
@@ -62,40 +58,34 @@ internal class MAEMonitorFragment : Fragment(), MAEPermissionRequest {
         }
     }
 
-    override fun setLifecycleListener(listener: (state: MAELifeCycleState, saveInstance: Bundle?) -> Unit) {
+    fun setLifecycleListener(listener: (state: MAELifeCycleState, saveInstance: Bundle?) -> Unit) {
         this.lifecycleListener = listener
     }
 
-    override fun maeStartActivityForResult(intent: Intent, requestCode: Int, bundle: Bundle?, resultListener: ((Int, Int, Intent?) -> Unit)) {
+    fun maeStartActivityForResult(intent: Intent, requestCode: Int, bundle: Bundle?, resultListener: ((Int, Int, Intent?) -> Unit)) {
         startActivityForResult(intent, requestCode, bundle)
         this.resultListener = resultListener
+    }
+
+    fun maeRequestPermission(permissions: Array<out String>, explain: String? = null, requestBuilder: MAEReqPermissionBuilder) {
+        this.reqPermissionBuilder = requestBuilder
+        val permissionsList = getPermissionsList(activity, permissions)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && permissionsList.isNotEmpty()) {
+            if (!activity.isFinishing) {
+                explain?.let {
+                    showExplainDialogAndRequestPermission(permissionsList, it)   // 为什么需要此权限
+                } ?: requestPermissions(permissionsList.toTypedArray(), request_code)
+            }
+        } else {
+            reqPermissionBuilder?.successClosure?.invoke()
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         resultListener?.invoke(requestCode, resultCode, data)
     }
 
-    /**
-     * 权限请求
-     */
-    override fun maeRequestPermission(vararg permissions: String, maePermissionCallback: MAEPermissionCallback, explain: String?, requestCode: Int) {
-        if (permissions == null || maePermissionCallback == null) {
-            return
-        }
-        this.request_code = requestCode
-
-        val permissionsList = getPermissionsList(activity, permissions)
-        this.maePermissionCallback = maePermissionCallback
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && permissionsList.isNotEmpty()) {
-            if (!activity.isFinishing) explain?.let {
-                showExplainDialogAndRequestPermission(permissionsList, maePermissionCallback, it)   // 向用户解释权限
-            } ?: requestPermissions(permissionsList.toTypedArray(), request_code)
-        } else {
-            maePermissionCallback.onPermissionApplySuccess()
-        }
-    }
-
-    private inline fun showExplainDialogAndRequestPermission(permissionsList: List<String>, maePermissionCallback: MAEPermissionCallback, explain: String) {
+    private inline fun showExplainDialogAndRequestPermission(permissionsList: List<String>, explain: String) {
         AlertDialog.Builder(activity).apply {
             setMessage(explain)
             setCancelable(false)
@@ -103,7 +93,7 @@ internal class MAEMonitorFragment : Fragment(), MAEPermissionRequest {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     requestPermissions(permissionsList.toTypedArray(), request_code)
                 } else {
-                    maePermissionCallback.onPermissionApplySuccess()
+                    reqPermissionBuilder?.successClosure?.invoke()
                 }
             }.create().show()
         }
@@ -128,26 +118,37 @@ internal class MAEMonitorFragment : Fragment(), MAEPermissionRequest {
 
         var isGranted = true
         val notGrantedPermissions = mutableListOf<String>()
-        val shouldShowRequestPermissions = mutableListOf<Boolean>()
+        val shouldShowRequestPermissions = mutableListOf<String>()
         permissions.forEachIndexed { index, s ->
             if (grantResults[index] != PackageManager.PERMISSION_GRANTED) {
                 isGranted = false
                 notGrantedPermissions.add(s)
-                shouldShowRequestPermissions.add(shouldShowRequestPermissionRationale(s))
+
+                // 如果用户在过去拒绝了权限请求，并在权限请求系统对话框中选择了 Don’t ask again 选项 的 权限列表
+                if (!shouldShowRequestPermissionRationale(s)) {
+                    shouldShowRequestPermissions.add(s)
+                }
             }
         }
 
         /* 国产手机无论是获取权限成功还是失败，这个结果都会有可能不可靠，需重新确认权限，详情参考
          * https://github.com/yanzhenjie/AndPermission/blob/master/README-CN.md#%E5%9B%BD%E4%BA%A7%E6%89%8B%E6%9C%BA%E9%80%82%E9%85%8D%E6%96%B9%E6%A1%88
          */
-        maePermissionCallback?.let {
+        reqPermissionBuilder?.let {
             if (isGranted && hasPermission(context, permissions)) {
-                it.onPermissionApplySuccess()
-            } else if (!isGranted) { //  权限被拒绝
+                it.successClosure?.invoke()
+            } else {
                 if (hasPermission(context, permissions)) {
-                    it.onPermissionApplySuccess()
+                    it.successClosure?.invoke()
                 } else {
-                    it.onPermissionApplyFailure(notGrantedPermissions, shouldShowRequestPermissions)
+                    it.failedClosure?.invoke(notGrantedPermissions)
+
+                    // 用户之前选择不再提醒时的权限列表
+                    shouldShowRequestPermissions.let { shouldShow ->
+                        if (shouldShowRequestPermissions.size > 0) {
+                            it.shouldShowReqPermissionPermission?.invoke(shouldShow)
+                        }
+                    }
                 }
             }
         }
@@ -158,7 +159,7 @@ internal class MAEMonitorFragment : Fragment(), MAEPermissionRequest {
      * */
     private fun hasPermission(context: Context, permissions: Array<String>): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
-        permissions.forEachIndexed { index, s ->
+        permissions.forEachIndexed { _, s ->
             var result = ContextCompat.checkSelfPermission(context, s)
             if (result == PackageManager.PERMISSION_DENIED) {
                 return false
@@ -210,43 +211,15 @@ internal class MAEMonitorFragment : Fragment(), MAEPermissionRequest {
     }
 }
 
-enum class MAELifeCycleState {
-    ON_CREATE, ON_START, ON_RESUME, ON_PAUSE, ON_STOP, ON_DESTROY, ON_SAVE_STATE
-}
-
 /**
  * 权限请求回调
- */
+
 interface MAEPermissionCallback {
-    fun onPermissionApplySuccess()
-    /**
-     * @param notGrantedPermissions，       没有被用户允许的权限
-     * @param shouldShowRequestPermissions 如果应用之前请求过此权限但用户拒绝了请求，此方法将返回 true。
-     * 如果用户在过去拒绝了权限请求，并在权限请求系统对话框中选择了 Don’t ask again 选项，此方法将返回 false。
-     */
-    fun onPermissionApplyFailure(notGrantedPermissions: List<String>, shouldShowRequestPermissions: List<Boolean>)
-}
-
+fun onPermissionApplySuccess()
 /**
- * 权限请求，对外的3个方法
- */
-interface MAEPermissionRequest {
-
-    /**
-     * 监听生命周期，高阶函数
-     */
-    fun setLifecycleListener(listener: (MAELifeCycleState, Bundle?) -> Unit)
-
-    /**
-     * activityForResult
-     */
-    fun maeStartActivityForResult(intent: Intent, requestCode: Int, bundle: Bundle? = null, resultListener: (requestCode: Int, resultCode: Int, Intent?) -> Unit)
-
-    /**
-     * 权限请求
-     * @param permissions 多个权限
-     * @param maePermissionCallback 回调
-     * @param explain 解释
-     */
-    fun maeRequestPermission(permissions: Array<out String>, maePermissionCallback: MAEPermissionCallback, explain: String? = null, requestCode: Int = 20)
-}
+ * @param notGrantedPermissions，       没有被用户允许的权限
+ * @param shouldShowRequestPermissions 如果应用之前请求过此权限但用户拒绝了请求，此方法将返回 true。
+ * 如果用户在过去拒绝了权限请求，并在权限请求系统对话框中选择了 Don’t ask again 选项，此方法将返回 false。
+*/
+fun onPermissionApplyFailure(notGrantedPermissions: List<String>, shouldShowRequestPermissions: List<Boolean>)
+}*/
