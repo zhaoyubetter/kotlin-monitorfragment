@@ -15,7 +15,7 @@
 你这代码太不kotlin了，完全就是翻译的Java，缺乏创新，要培养函数式思维；可以尝试改一下；  
 
 * 回调方法采用高阶函数，避免实现多个方法；
-* 采用DSL（始终有点晕）；
+* 采用DSL配置回调请求权限；
 
 **1. 将生命周期接口改成高阶函数，更加简洁：**
 
@@ -32,6 +32,22 @@ btn_lifeCycle.setOnClickListener {
     }
 ```
 
+**2. 将权限请求改成DSL配置式，更加简洁：**
+
+```kotlin
+maeReqPermission(arrayOf(Manifest.permission.CAMERA, Manifest.permission.ACCESS_FINE_LOCATION), "摄像头与更好的位置") {
+    success {
+        Toast.makeText(applicationContext, "获取成功", Toast.LENGTH_SHORT).show()
+    }
+    failed {
+        Toast.makeText(applicationContext, "获取失败！！", Toast.LENGTH_SHORT).show()
+    }
+    // 用户选择不再询问，执行以下
+    shouldShowReqPermission { it ->
+        Log.e("better", it.toString())
+    }
+}
+```
 
 
 ## Java 版本
@@ -56,7 +72,7 @@ btn_lifeCycle.setOnClickListener {
 2. 引入库
 
     ```
-    implementation 'com.github.zhaoyubetter:kotlin-monitorfragment:v1.0.0'
+    implementation 'com.github.zhaoyubetter:kotlin-monitorfragment:v1.0.1'
     ```
 
 ## 具体使用
@@ -64,18 +80,19 @@ btn_lifeCycle.setOnClickListener {
 ### 1.权限请求
 
 ```kotlin
- // 权限
-btn_sd.setOnClickListener { view ->
-    maeRequestPermission(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.CAMERA), object : MAEPermissionCallback {
-        override fun onPermissionApplySuccess() {
+btn_sd.setOnClickListener {
+    maeReqPermission(arrayOf(Manifest.permission.CAMERA, Manifest.permission.ACCESS_FINE_LOCATION), "摄像头与更好的位置") {
+        success {
             Toast.makeText(applicationContext, "获取成功", Toast.LENGTH_SHORT).show()
         }
-
-        override fun onPermissionApplyFailure(notGrantedPermissions: List<String>, shouldShowRequestPermissions: List<Boolean>) {
+        failed {
             Toast.makeText(applicationContext, "获取失败！！", Toast.LENGTH_SHORT).show()
         }
-    })
+        // 用户选择不再询问，执行以下
+        shouldShowReqPermission { it ->
+            Log.e("better", it.toString())
+        }
+    }
 }
 ```
 
@@ -84,26 +101,23 @@ btn_sd.setOnClickListener { view ->
 ```kotlin
 // lifecycle
 btn_lifeCycle.setOnClickListener {
-    MAEMonitorFragment.getInstance(this)?.setLifecycleListener(object : MAELifecycleListener {
-        override fun onSaveInstanceState(outState: Bundle) {
-            Toast.makeText(applicationContext, "onSaveInstance()", Toast.LENGTH_SHORT).show()
+    maeLifeCycle { state, _ ->
+        when (state) {
+            MAELifeCycleState.ON_STOP ->
+                Toast.makeText(applicationContext, "onStop", Toast.LENGTH_SHORT).show()
+            MAELifeCycleState.ON_DESTROY ->
+                Toast.makeText(applicationContext, "onDestroy", Toast.LENGTH_SHORT).show()
         }
-
-        override fun onCreate(savedInstanceState: Bundle?) {
-            Toast.makeText(applicationContext, "onCreate()", Toast.LENGTH_SHORT).show()
-        }
-
-        override fun onStop() {
-            Toast.makeText(applicationContext, "onStop()", Toast.LENGTH_SHORT).show()
-        }
-    })
+    }
 }
 ```
 
 ### 3.onActivityForResult
 
 ```kotlin
- maeStartActivityForResult(Intent(applicationContext, DemoActivity::class.java), 20) { _, _, data ->
+btn_result.setOnClickListener {
+    maeStartForResult(Intent(applicationContext, DemoActivity::class.java), 20) { _, _, data ->
         Toast.makeText(applicationContext, data?.getStringExtra("name"), Toast.LENGTH_SHORT).show()
+    }
 }
 ```
